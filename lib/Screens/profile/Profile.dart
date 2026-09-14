@@ -1,8 +1,12 @@
+import 'dart:io';
 
 import 'package:connectcall/Screens/Riverpod/ScreenTheme.dart';
+import 'package:connectcall/Screens/auth/Login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends ConsumerStatefulWidget {
   const Profile({super.key});
@@ -13,6 +17,8 @@ class Profile extends ConsumerStatefulWidget {
 
 class _ProfileState extends ConsumerState<Profile> {
   bool edit = false;
+  XFile? selected;
+  final ImagePicker image = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +26,7 @@ class _ProfileState extends ConsumerState<Profile> {
     final width = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Profile",
-          style: TextStyle( fontWeight: FontWeight.bold),
-        ),
+        title: Text("Profile", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -35,15 +38,19 @@ class _ProfileState extends ConsumerState<Profile> {
                   GestureDetector(
                     child: CircleAvatar(
                       radius: 60,
-                      child: Image.asset("assets/calling.png"),
+                      backgroundImage: selected!=
+                          null?FileImage(File(selected!.path)):null,
+
                     ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("taped"),
-                          duration: Duration(seconds: 2),
-                        ),
+                    onTap: () async {
+                      final XFile? file = await image.pickImage(
+                        source: ImageSource.gallery,
                       );
+                      if(file!=null) {
+                        setState(() {
+                        selected=file;
+                        });
+                      }
                     },
                   ),
                   SizedBox(height: height * 0.02),
@@ -120,7 +127,16 @@ class _ProfileState extends ConsumerState<Profile> {
             ListTile(
               leading: Icon(Icons.logout),
               title: Text("Logout"),
-              onTap: () {},
+              onTap: () async {
+                final id = await SharedPreferences.getInstance();
+                final logout = id.remove("id");
+                if (logout != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Login()),
+                  );
+                }
+              },
             ),
             if (edit)
               ListTile(

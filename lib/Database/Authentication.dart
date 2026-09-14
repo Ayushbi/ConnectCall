@@ -23,7 +23,7 @@ class Db {
     }
   }
 
-  static Future<bool> Login(String Email, String pass) async {
+  static Future<dynamic> Login(String Email, String pass) async {
     try {
       final user = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: Email,
@@ -39,8 +39,8 @@ class Db {
 
       return false;
     } catch (e) {
-      print(e);
-      return false;
+
+      return e.toString();
     }
   }
 }

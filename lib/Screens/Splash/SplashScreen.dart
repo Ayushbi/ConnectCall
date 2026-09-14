@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectcall/Screens/Home/Homcontent.dart';
+import 'package:connectcall/Screens/Home/Home_Screen.dart';
 
 import 'package:connectcall/Screens/auth/Registration.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ class _SplashState extends State<Splash> {
       if (id != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Homecontent()),
+          MaterialPageRoute(builder: (context) => HomeScreen()),
         );
       } else {
         Navigator.pushReplacement(

@@ -1,3 +1,4 @@
+import 'package:connectcall/Screens/Contact/Add_contact.dart';
 import 'package:flutter/material.dart';
 
 class Contact extends StatefulWidget {
@@ -134,7 +135,10 @@ class _ContactState extends State<Contact> {
               bottom: 10,
               right: 10,
               child: FloatingActionButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(
+                      builder: (context)=>AddContact()));
+                },
                 child: Icon(Icons.add),
               ),
             ),

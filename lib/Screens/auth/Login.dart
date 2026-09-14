@@ -111,6 +111,11 @@ class _LoginState extends State<Login> {
                            MaterialPageRoute(builder: (context)=>HomeScreen()));
 
                       }
+                       else{
+                         ScaffoldMessenger.of(context).showSnackBar
+                           (SnackBar(content: Text(user.toString()),
+                           duration: Duration(seconds: 2),));
+                       }
                     }
                   },
                   child: Text("login"),
