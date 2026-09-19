@@ -1,3 +1,5 @@
+import 'package:connectcall/Services/CallService.dart';
+import 'package:connectcall/Services/FirebaseSignal.dart';
 import 'package:flutter/material.dart';
 
 enum Call { incoming, outgoing }
@@ -15,6 +17,21 @@ class _Audio_callingState extends State<Audio_calling> {
   bool ismute=false;
   bool speaker=false;
   bool isvideo=false;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+
+
+    // Callservice.Connection().then((_) {
+    //   return Callservice.Media();
+    // }).then((_) {
+    //   return Callservice.offer();
+    // });
+
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
