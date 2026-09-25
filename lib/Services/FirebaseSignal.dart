@@ -6,18 +6,13 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 class FirebaseSignal {
   static final FirebaseFirestore db = FirebaseFirestore.instance;
 
-
-
-  static Future<dynamic> signal(String id,RTCSessionDescription offer) async {
-    var call=await db.collection("calls").doc(id);
+  static Future<dynamic> signal(String id, RTCSessionDescription offer) async {
+    var call = await db.collection("calls").doc(id);
     await call.set({
       "offer": {"type": offer.type, "sdp": offer.sdp},
       "createdAt": FieldValue.serverTimestamp(),
     });
-
   }
-
-
 
   static Future<dynamic> Get_id() async {
     var data = db.collection("calls").snapshots();
@@ -88,5 +83,18 @@ class FirebaseSignal {
         }
       }
     });
+  }
+
+  //Get id after accepting call
+  static Future<dynamic> Accept_id() async {
+    String? id;
+    var database = db.collection("calls").snapshots();
+    var snapshot = await database.first;
+    for (var data in snapshot.docChanges) {
+      if (data.type == DocumentChangeType.modified) {
+        id = data.doc.id;
+      }
+    }
+    return id;
   }
 }

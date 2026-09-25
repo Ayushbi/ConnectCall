@@ -6,32 +6,32 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 enum Call { incoming, outgoing }
 
 class Audio_calling extends StatefulWidget {
-  final Call callType = Call.outgoing;
+  final Call callType;
 
-  const Audio_calling({super.key});
+  const Audio_calling({super.key, required this.callType});
 
   @override
   State<Audio_calling> createState() => _Audio_callingState();
 }
 
 class _Audio_callingState extends State<Audio_calling> {
-  bool ismute=false;
-  bool speaker=false;
-  bool isvideo=false;
-  @override
-  void initState() {
-    super.initState();
-    Callservice.RemoteMedia((Mediatype){
-    print(Mediatype);
-    }, (MediaStream){
-print(MediaStream);
+  MediaStream? Audio;
+  bool ismute = false;
+  bool speaker = false;
+  bool isvideo = false;
+  bool accepted = false;
 
-    });
+  Future<void> mute(ismute) async {
+    var track = Callservice.media!.getAudioTracks();
+    for (var tracks in track) {
+      tracks.enabled = ismute;
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-
+    final width = MediaQuery.of(context).size.width;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -83,13 +83,14 @@ print(MediaStream);
                       height: 70,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: ismute?Colors.grey:Colors.white
+                        color: ismute ? Colors.grey : Colors.white,
                       ),
                       child: IconButton(
                         onPressed: () {
                           setState(() {
-                            ismute=!ismute;
+                            ismute = !ismute;
                           });
+                          mute(ismute);
                         },
                         icon: Icon(Icons.mic_off),
                       ),
@@ -105,14 +106,16 @@ print(MediaStream);
                       height: 70,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: speaker?Colors.grey:Colors.white,
+                        color: speaker ? Colors.grey : Colors.white,
                       ),
                       child: IconButton(
-                        onPressed: () {
+                        onPressed: () async {
                           setState(() {
-                            speaker=!speaker;
+                            speaker = !speaker;
                           });
+                          await Helper.setSpeakerphoneOn(speaker);
                         },
+
                         icon: Icon(Icons.volume_up),
                       ),
                     ),
@@ -127,12 +130,12 @@ print(MediaStream);
                       height: 70,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isvideo?Colors.grey:Colors.white,
+                        color: isvideo ? Colors.grey : Colors.white,
                       ),
                       child: IconButton(
                         onPressed: () {
                           setState(() {
-                            isvideo=!isvideo;
+                            isvideo = !isvideo;
                           });
                         },
                         icon: Icon(Icons.videocam),
@@ -147,27 +150,58 @@ print(MediaStream);
             Spacer(),
 
             widget.callType == Call.incoming
-                ? Container(
-                    width: 70,
-                    height: 70,
-                    child: FloatingActionButton(
-                      backgroundColor: Colors.green,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: Icon(Icons.call),
-                    ),
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!accepted)
+                        Container(
+                          width: 70,
+                          height: 70,
+                          child: FloatingActionButton(
+                            backgroundColor: Colors.green,
+                            onPressed: () async {
+                              var id = await FirebaseSignal.Accept_id();
+                              await Callservice.Connection();
+                              await Callservice.Media(false);
+
+                              await Callservice.RemoteMedia("audio", (stream) {
+                                Audio = stream;
+                              });
+                              await FirebaseSignal.answer(id);
+                              setState(() {
+                                accepted = true;
+                              });
+                            },
+                            child: Icon(Icons.call),
+                          ),
+                        ),
+                      if (!accepted) SizedBox(width: width * 0.3),
+
+                      Container(
+                        width: 70,
+                        height: 70,
+                        child: FloatingActionButton(
+                          backgroundColor: Colors.red,
+                          onPressed: () async {
+                            await Callservice.connection?.close();
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Icon(Icons.call_end),
+                        ),
+                      ),
+                    ],
                   )
-                : Container(
-                    width: 70,
-                    height: 70,
-                    child: FloatingActionButton(
-                      backgroundColor: Colors.red,
-                      onPressed: () {
+                : FloatingActionButton(
+                    backgroundColor: Colors.red,
+                    onPressed: () async {
+                      await Callservice.connection?.close();
+                      if (context.mounted) {
                         Navigator.pop(context);
-                      },
-                      child: Icon(Icons.call_end),
-                    ),
+                      }
+                    },
+                    child: Icon(Icons.call_end),
                   ),
 
             SizedBox(height: height * 0.08),

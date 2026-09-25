@@ -25,7 +25,7 @@ class _CallTypeState extends State<CallType> {
       await Callservice.Media(false);
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => Audio_calling()),
+        MaterialPageRoute(builder: (context) => Audio_calling(callType: Call.incoming,)),
         (route) => false,
       );
     } else if (type == "video") {

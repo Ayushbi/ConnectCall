@@ -1,7 +1,8 @@
-
 import 'package:connectcall/Screens/Contact/contact.dart';
+import 'package:connectcall/Screens/calling/audio.dart';
 import 'package:connectcall/Screens/history/calling_history.dart';
 import 'package:connectcall/Screens/profile/Profile.dart';
+import 'package:connectcall/Services/CallService.dart';
 
 import 'package:flutter/material.dart';
 
@@ -15,17 +16,14 @@ class Homecontent extends StatefulWidget {
 class _HomecontentState extends State<Homecontent> {
   bool search = false;
   bool outgoing = false;
-TextEditingController Number=TextEditingController();
-
+  TextEditingController Number = TextEditingController();
 
   Widget dialButton(String value) {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        minimumSize: Size(80, 80),
-      ),
+      style: ElevatedButton.styleFrom(minimumSize: Size(80, 80)),
       onPressed: () {
         setState(() {
-          Number.text+=value;
+          Number.text += value;
         });
       },
       child: Text(value, style: TextStyle(fontSize: 25)),
@@ -48,7 +46,6 @@ TextEditingController Number=TextEditingController();
             onPressed: () {
               setState(() {
                 search = !search;
-
               });
             },
             icon: Icon(Icons.search),
@@ -190,11 +187,7 @@ TextEditingController Number=TextEditingController();
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-
-                          ),
+                          BoxShadow(color: Colors.black26, blurRadius: 10),
                         ],
                       ),
                       child: Column(
@@ -222,21 +215,21 @@ TextEditingController Number=TextEditingController();
 
                               IconButton(
                                 onPressed: () {
-                                setState(() {
-                                  if (Number.text.isNotEmpty) {
-                                    Number.text = Number.text.substring(
-                                      0,
-                                      Number.text.length - 1,
-                                    );
-                                  }
-                                });
+                                  setState(() {
+                                    if (Number.text.isNotEmpty) {
+                                      Number.text = Number.text.substring(
+                                        0,
+                                        Number.text.length - 1,
+                                      );
+                                    }
+                                  });
                                 },
                                 icon: const Icon(Icons.close),
                               ),
                             ],
                           ),
 
-                          SizedBox(height: height*0.02,),
+                          SizedBox(height: height * 0.02),
                           GridView.count(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -265,7 +258,18 @@ TextEditingController Number=TextEditingController();
                             backgroundColor: Colors.green,
                             child: IconButton(
                               icon: const Icon(Icons.call, color: Colors.white),
-                              onPressed: () {},
+                              onPressed: () async {
+                                await Callservice.Connection();
+                                await Callservice.Media(false);
+                                await Callservice.offer();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        Audio_calling(callType: Call.outgoing),
+                                  ),
+                                );
+                               },
                             ),
                           ),
                         ],
@@ -276,7 +280,7 @@ TextEditingController Number=TextEditingController();
               },
               child: const Icon(Icons.dialpad),
             ),
-            SizedBox(height: height*0.01,)
+            SizedBox(height: height * 0.01),
           ],
         ),
       ),

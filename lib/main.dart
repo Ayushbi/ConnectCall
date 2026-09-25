@@ -1,9 +1,11 @@
 
+import 'package:connectcall/Screens/Contact/contact.dart';
 import 'package:connectcall/Screens/Home/Homcontent.dart';
 import 'package:connectcall/Screens/Riverpod/ScreenTheme.dart';
 import 'package:connectcall/Screens/Splash/SplashScreen.dart';
 import 'package:connectcall/Screens/auth/Registration.dart';
 import 'package:connectcall/Screens/calling/audio.dart';
+import 'package:connectcall/Screens/calling/video.dart';
 import 'package:connectcall/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +40,7 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       darkTheme: ThemeData.dark(),
-      home:Audio_calling()
+      home:Video_calling()
     );
   }
 }

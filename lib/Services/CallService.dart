@@ -9,9 +9,9 @@ class Callservice {
   static RTCPeerConnection? connection;
   static String? call_id;
 
-  static Future<void> Connection() async {
-    var call = FirebaseSignal.db.collection("calls").doc();
-    Callservice.call_id = call.id;
+  static Future<void> Connection([String? id]) async {
+    Callservice.call_id =
+        id ?? FirebaseSignal.db.collection("calls").doc().id;
     connection = await createPeerConnection({});
     connection!.onIceCandidate = (call) async {
       await FirebaseSignal.candidate(call_id!, call);
@@ -34,19 +34,17 @@ class Callservice {
   }
 
   static Future<void> RemoteMedia(
-    Function(String) MediaType,
-    Function(MediaStream) media,
+   type, Function(MediaStream) media,
   ) async {
     connection!.onTrack = (event) {
-      if (event.track.kind == "audio") {
+      if (event.track.kind == type) {
         if (event.streams.isNotEmpty) {
-          MediaType("audio");
         media(event.streams[0]);
         }
       }
-      if (event.track.kind == "video") {
+      if (event.track.kind == type) {
         if (event.streams.isNotEmpty) {
-          MediaType("video");
+         
           media(event.streams[0]);
 
         }
@@ -62,7 +60,7 @@ class Callservice {
     await FirebaseSignal.signal(id!, data);
   }
 
-  //reciver
+
   static Future<RTCSessionDescription> answer(
     RTCSessionDescription data,
   ) async {
