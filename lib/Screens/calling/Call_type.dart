@@ -32,7 +32,7 @@ class _CallTypeState extends State<CallType> {
       await Callservice.Media(true);
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => Video_calling()),
+        MaterialPageRoute(builder: (context) => Video_calling(type: call.outgoing,)),
         (route) => false,
       );
     }

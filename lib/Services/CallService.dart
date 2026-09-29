@@ -60,7 +60,7 @@ class Callservice {
     await FirebaseSignal.signal(id!, data);
   }
 
-
+//reciver
   static Future<RTCSessionDescription> answer(
     RTCSessionDescription data,
   ) async {
@@ -75,7 +75,7 @@ class Callservice {
     await connection!.setRemoteDescription(data);
   }
 
-  // add candidate from other user
+  // User B: Add the received ICE candidate to the local WebRTC connection
   static Future<void> addcandidate(RTCIceCandidate cand) async {
     await connection!.addCandidate(cand);
   }

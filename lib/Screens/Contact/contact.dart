@@ -1,17 +1,36 @@
+import 'package:connectcall/Database/Contact.dart';
+import 'package:connectcall/Models/Contact_model.dart';
 import 'package:connectcall/Screens/Contact/Add_contact.dart';
 import 'package:flutter/material.dart';
 
+
 class Contact extends StatefulWidget {
-  const Contact({super.key});
+  const Contact({super.key,});
 
   @override
   State<Contact> createState() => _ContactState();
 }
 
 class _ContactState extends State<Contact> {
+  List<ContactModel> Contacts=[];
+  List<ContactModel>FilterList=[];
+
   bool search = false;
   bool select = false;
   Set<int> selectedContacts = {};
+   LoadContact()async{
+     var data =await contact().Getcontact();
+     setState(() {
+       Contacts=data;
+       FilterList=data;
+     });
+   }
+   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    LoadContact();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +62,14 @@ class _ContactState extends State<Contact> {
                   Padding(
                     padding: EdgeInsets.all(10),
                     child: TextField(
+                      onChanged: (value){
+                        setState(() {
+                       FilterList=Contacts.where((Contact){
+                         return Contact.name.toLowerCase().contains(value.toLowerCase());
+
+                       }).toList();
+                        });
+                      },
                       decoration: InputDecoration(
                         hintText: "Search contacts",
                         prefixIcon: Icon(Icons.search),
@@ -87,12 +114,12 @@ class _ContactState extends State<Contact> {
 
                 Expanded(
                   child: ListView.builder(
-                    itemCount: 30,
+                    itemCount: FilterList.length,
                     itemBuilder: (context, index) {
                       return ListTile(
                         leading: CircleAvatar(child: Icon(Icons.person)),
-                        title: Text("Contact $index"),
-                        subtitle: Text("Online"),
+                        title: Text(Contacts[index].name),
+                        subtitle: Text(Contacts[index].email ??""),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

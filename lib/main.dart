@@ -1,6 +1,7 @@
 
 import 'package:connectcall/Screens/Contact/contact.dart';
 import 'package:connectcall/Screens/Home/Homcontent.dart';
+import 'package:connectcall/Screens/Home/Home_Screen.dart';
 import 'package:connectcall/Screens/Riverpod/ScreenTheme.dart';
 import 'package:connectcall/Screens/Splash/SplashScreen.dart';
 import 'package:connectcall/Screens/auth/Registration.dart';
@@ -40,7 +41,7 @@ class MyApp extends ConsumerWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       darkTheme: ThemeData.dark(),
-      home:Video_calling()
+      home:HomeScreen()
     );
   }
 }

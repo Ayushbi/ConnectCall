@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:connectcall/Database/Contact.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -13,6 +14,9 @@ class AddContact extends StatefulWidget {
 class _AddContactState extends State<AddContact> {
   final ImagePicker image = ImagePicker();
   XFile? SelectFile;
+  TextEditingController name = TextEditingController();
+  TextEditingController phone = TextEditingController();
+  TextEditingController email = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +62,7 @@ class _AddContactState extends State<AddContact> {
               Padding(
                 padding: EdgeInsets.all(12),
                 child: TextField(
+                  controller: name,
                   decoration: InputDecoration(
                     icon: Icon(Icons.person),
                     hintText: "Name",
@@ -68,6 +73,7 @@ class _AddContactState extends State<AddContact> {
               Padding(
                 padding: EdgeInsets.all(12),
                 child: TextField(
+                  controller: phone,
                   decoration: InputDecoration(
                     icon: Icon(Icons.phone),
                     hintText: "Phone",
@@ -78,6 +84,7 @@ class _AddContactState extends State<AddContact> {
               Padding(
                 padding: EdgeInsets.all(12),
                 child: TextField(
+                  controller: email,
                   decoration: InputDecoration(
                     icon: Icon(Icons.email),
                     hintText: "Email",
@@ -85,7 +92,33 @@ class _AddContactState extends State<AddContact> {
                 ),
               ),
               SizedBox(height: height * 0.02),
-              FloatingActionButton(onPressed: () {}, child: Text("Save")),
+              FloatingActionButton(
+                onPressed: () async {
+                  final result = await contact().SaveContact(
+                    phone.text,
+                    name.text,
+                    email.text,
+                    SelectFile,
+                  );
+                  if (result == true) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Contact Saved")));
+                    name.clear();
+                    phone.clear();
+                    email.clear();
+
+                    setState(() {
+                      SelectFile = null;
+                    });
+                  } else {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(result.toString())));
+                  }
+                },
+                child: Text("Save"),
+              ),
             ],
           ),
         ),

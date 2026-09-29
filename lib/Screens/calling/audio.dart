@@ -28,6 +28,86 @@ class _Audio_callingState extends State<Audio_calling> {
     }
   }
 
+  Future<void> Outgoing_call() async {
+    await Callservice.Connection();
+    await Callservice.Media(false);
+    await Callservice.offer();
+    await FirebaseSignal.getAnswer(Callservice.call_id!);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if (widget.callType == Call.outgoing) {
+      Outgoing_call();
+    }
+  }
+  Widget IncomingUI(double width) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (!accepted)
+          Container(
+            width: 70,
+            height: 70,
+            child: FloatingActionButton(
+              backgroundColor: Colors.green,
+              onPressed: () async {
+                var id = await FirebaseSignal.Accept_id();
+
+                await Callservice.Connection(id);
+                await Callservice.Media(false);
+
+                await Callservice.RemoteMedia("audio", (stream) {
+                  Audio = stream;
+                });
+
+                await FirebaseSignal.answer(id);
+
+                setState(() {
+                  accepted = true;
+                });
+              },
+              child: const Icon(Icons.call),
+            ),
+          ),
+
+        if (!accepted)
+          SizedBox(width: width * 0.3),
+
+        Container(
+          width: 70,
+          height: 70,
+          child: FloatingActionButton(
+            backgroundColor: Colors.red,
+            onPressed: () async {
+              await Callservice.connection?.close();
+
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Icon(Icons.call_end),
+          ),
+        ),
+      ],
+    );
+  }
+  Widget OutgoingUI() {
+    return FloatingActionButton(
+      backgroundColor: Colors.red,
+      onPressed: () async {
+        await Callservice.connection?.close();
+
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: const Icon(Icons.call_end),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
@@ -148,66 +228,14 @@ class _Audio_callingState extends State<Audio_calling> {
             ),
 
             Spacer(),
+            widget.callType==Call.incoming?
+                IncomingUI(width):
+                OutgoingUI()
 
-            widget.callType == Call.incoming
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (!accepted)
-                        Container(
-                          width: 70,
-                          height: 70,
-                          child: FloatingActionButton(
-                            backgroundColor: Colors.green,
-                            onPressed: () async {
-                              var id = await FirebaseSignal.Accept_id();
-                              await Callservice.Connection();
-                              await Callservice.Media(false);
-
-                              await Callservice.RemoteMedia("audio", (stream) {
-                                Audio = stream;
-                              });
-                              await FirebaseSignal.answer(id);
-                              setState(() {
-                                accepted = true;
-                              });
-                            },
-                            child: Icon(Icons.call),
-                          ),
-                        ),
-                      if (!accepted) SizedBox(width: width * 0.3),
-
-                      Container(
-                        width: 70,
-                        height: 70,
-                        child: FloatingActionButton(
-                          backgroundColor: Colors.red,
-                          onPressed: () async {
-                            await Callservice.connection?.close();
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: Icon(Icons.call_end),
-                        ),
-                      ),
-                    ],
-                  )
-                : FloatingActionButton(
-                    backgroundColor: Colors.red,
-                    onPressed: () async {
-                      await Callservice.connection?.close();
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Icon(Icons.call_end),
-                  ),
-
-            SizedBox(height: height * 0.08),
           ],
         ),
       ),
     );
   }
 }
+

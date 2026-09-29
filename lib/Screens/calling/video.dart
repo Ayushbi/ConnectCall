@@ -6,9 +6,9 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 enum call { incoming, outgoing }
 
 class Video_calling extends StatefulWidget {
-  final call type = call.incoming;
+  final call type;
 
-  const Video_calling({super.key});
+  const Video_calling({super.key, required this.type});
 
   @override
   State<Video_calling> createState() => _Video_callingState();
@@ -17,7 +17,7 @@ class Video_calling extends StatefulWidget {
 class _Video_callingState extends State<Video_calling> {
   MediaStream? Video;
   final RTCVideoRenderer video = RTCVideoRenderer();
-  final RTCVideoRenderer LocalVideo=RTCVideoRenderer();
+  final RTCVideoRenderer LocalVideo = RTCVideoRenderer();
   bool accept = false;
   bool ismuted = false;
   bool speaker = false;
@@ -27,27 +27,44 @@ class _Video_callingState extends State<Video_calling> {
   @override
   void initState() {
     super.initState();
-    video.initialize();
-    LocalVideo.initialize();
-    Callservice.RemoteMedia("video", (MediaStream) {
-      setState(() {
-        Video = MediaStream;
-        video.srcObject = Video;
-      });
-    });
+    setup();
+  }
+  Future<void> setup() async {
+    await video.initialize();
+    await LocalVideo.initialize();
+
+    if (widget.type == call.outgoing) {
+      await Outgoing();
+    }
   }
 
-  void accepted() async {
+  Future<void> accepted() async {
+    var id = await FirebaseSignal.Accept_id();
+    await Callservice.Connection(id);
+    await Callservice.Media(true);
+    LocalVideo.srcObject = Callservice.media;
+    await FirebaseSignal.answer(id);
+    await Incoming();
     setState(() {
       accept = true;
     });
-   var id= await FirebaseSignal.Accept_id();
+  }
+
+
+  Future<void> Outgoing() async {
     await Callservice.Connection();
     await Callservice.Media(true);
-    LocalVideo.srcObject=Callservice.media;
-    await FirebaseSignal.answer(id);
-
-
+    LocalVideo.srcObject = Callservice.media;
+    await Callservice.offer();
+    await FirebaseSignal.getAnswer(Callservice.call_id!);
+  }
+  Future<void> Incoming() async {
+    await Callservice.RemoteMedia("video", (stream) {
+      setState(() {
+        Video = stream;
+        video.srcObject = Video;
+      });
+    });
   }
 
   @override
@@ -73,7 +90,6 @@ class _Video_callingState extends State<Video_calling> {
                   height: height * 0.2,
                   width: width * 0.3,
                   child: RTCVideoView(LocalVideo),
-
                 ),
               ),
             ),
