@@ -43,6 +43,9 @@ dependencies:
   flutter_webrtc: ^1.6.2+hotfix.1
   image_picker: ^1.2.3
   firebase_storage: ^13.6.0
+  flutter_contacts: ^2.1.0
+  intl: ^0.20.3
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +71,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/calling.png
+    - assets/Incoming_audio.mp3
+    - assets/connected.wav
+    - assets/connecting.mp3
 flutter_launcher_icons:
      android: true
      ios: true

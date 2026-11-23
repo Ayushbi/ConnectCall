@@ -1,11 +1,16 @@
+import 'package:connectcall/Controller/Call_Controller.dart';
+import 'package:connectcall/Models/call_history.dart';
 import 'package:connectcall/Screens/Contact/contact.dart';
-import 'package:connectcall/Screens/calling/audio.dart';
 import 'package:connectcall/Screens/history/calling_history.dart';
 import 'package:connectcall/Screens/profile/Profile.dart';
-import 'package:connectcall/Services/CallService.dart';
-
+import 'package:connectcall/Services/UserInfo.dart';
+import 'package:connectcall/Utilities/Phone_normalize.dart';
+import 'package:connectcall/Utilities/contact_name.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' as PhoneContact;
 import 'package:flutter/material.dart';
 
+import 'package:intl/intl.dart';
+List<PhoneContact.Contact> Contacts = [];
 class Homecontent extends StatefulWidget {
   const Homecontent({super.key});
 
@@ -15,15 +20,60 @@ class Homecontent extends StatefulWidget {
 
 class _HomecontentState extends State<Homecontent> {
   bool search = false;
+  final contacts = Contacts;
   bool outgoing = false;
-  TextEditingController Number = TextEditingController();
+  bool loading = true;
+  Map<String, String> contactNames = {};
+  List<Call_History> call_history = [];
+  List<Call_History> filter = [];
+  TextEditingController search_number = TextEditingController();
+  TextEditingController number = TextEditingController();
+
+  Future<void> Call() async {
+    final data = await UserData.CallHistory();
+    if (!mounted) return;
+    setState(() {
+      call_history = data;
+      filter = data;
+
+      loading = false;
+    });
+  }
+  Future<void> Getcontacts() async {
+    final permission = await PhoneContact.FlutterContacts.permissions.request(
+      PhoneContact.PermissionType.readWrite,
+    );
+    if (permission == PhoneContact.PermissionStatus.granted) {
+      final Contact = await PhoneContact.FlutterContacts.getAll(
+        properties: {
+          PhoneContact.ContactProperty.name,
+          PhoneContact.ContactProperty.phone,
+          PhoneContact.ContactProperty.email,
+          PhoneContact.ContactProperty.photoFullRes,
+        },
+      );
+
+      if (!mounted) return;
+      setState(() {
+        Contacts = Contact;
+      });
+    }
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    Getcontacts();
+    Call();
+  }
 
   Widget dialButton(String value) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(minimumSize: Size(80, 80)),
       onPressed: () {
         setState(() {
-          Number.text += value;
+          number.text += value;
         });
       },
       child: Text(value, style: TextStyle(fontSize: 25)),
@@ -32,8 +82,14 @@ class _HomecontentState extends State<Homecontent> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery
+        .of(context)
+        .size
+        .height;
+    final width = MediaQuery
+        .of(context)
+        .size
+        .width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -42,14 +98,6 @@ class _HomecontentState extends State<Homecontent> {
         ),
 
         actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                search = !search;
-              });
-            },
-            icon: Icon(Icons.search),
-          ),
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -61,17 +109,17 @@ class _HomecontentState extends State<Homecontent> {
           ),
         ],
       ),
-      body: SafeArea(
+      body: loading
+          ? Center(
+        child: SizedBox(
+          width: 50,
+          height: 50,
+          child: CircularProgressIndicator(strokeWidth: 5),
+        ),
+      )
+          : SafeArea(
         child: Column(
           children: [
-            if (search)
-              TextField(
-                decoration: InputDecoration(
-                  hintText: "Search",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search),
-                ),
-              ),
             Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -96,7 +144,9 @@ class _HomecontentState extends State<Homecontent> {
                             SizedBox(height: height * 0.01),
                             Text(
                               "Call History",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -111,7 +161,9 @@ class _HomecontentState extends State<Homecontent> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => Contact()),
+                          MaterialPageRoute(
+                            builder: (context) => Contact(),
+                          ),
                         );
                       },
                       child: Card(
@@ -122,7 +174,9 @@ class _HomecontentState extends State<Homecontent> {
                             SizedBox(height: height * 0.01),
                             Text(
                               "Contacts",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -141,36 +195,77 @@ class _HomecontentState extends State<Homecontent> {
                 ),
               ],
             ),
+
             Expanded(
               child: ListView.builder(
-                itemCount: 30,
+                itemCount: call_history.length,
+
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: CircleAvatar(),
-                    title: Text("ayush"),
-                    subtitle: Row(
-                      children: [
-                        outgoing
-                            ? Row(
-                                children: [
-                                  Icon(Icons.call_made),
-                                  Text("Outgoing"),
-                                ],
+                  return FutureBuilder<String?>(
+                    future: Contactname(call_history[index].user_id),
+
+                    builder: (context, snapshot) {
+                      final phone = snapshot.data;
+                      String Displayname = phone ?? "";
+                      if (phone != null) {
+                        try {
+                          final Contact = Contacts.firstWhere((data) {
+                            return data.phones.any((p) {
+                              return NormalizePhone(p.number) ==
+                                  NormalizePhone(phone);
+                            });
+                          });
+
+                          Displayname = Contact.displayName ?? phone;
+                        } catch (e) {}
+                      }
+
+                      return ListTile(
+                        leading: Icon(Icons.person),
+                        title: Text(Displayname),
+                        subtitle: Row(
+                          children: [
+                            call_history[index].Direction == "outgoing"
+                                ? Row(
+                              children: [
+                                Icon(Icons.call_made),
+                                Text("Outgoing"),
+                              ],
+                            )
+                                : Row(
+                              children: [
+                                Icon(Icons.call_received),
+                                Text("Incoming"),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              call_history[index].started_at != null
+                                  ? DateFormat('hh:mm a').format(
+                                call_history[index].started_at!
+                                    .toDate(),
                               )
-                            : Row(
-                                children: [
-                                  Icon(Icons.call_received),
-                                  Text("Incoming"),
-                                ],
-                              ),
-                      ],
-                    ),
-                    trailing: Text("10:00AM"),
+                                  : "",
+                            ),
+                            Text(
+                              "${call_history[index].Duration} Seconds",
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          print("Tapped");
+                        },
+                      );
+                    },
                   );
                 },
               ),
             ),
-
             FloatingActionButton(
               onPressed: () {
                 showModalBottomSheet(
@@ -184,10 +279,15 @@ class _HomecontentState extends State<Homecontent> {
                         horizontal: 24,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
+                        color: Theme
+                            .of(context)
+                            .cardColor,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 10),
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                          ),
                         ],
                       ),
                       child: Column(
@@ -199,7 +299,7 @@ class _HomecontentState extends State<Homecontent> {
                               SizedBox(
                                 width: 250,
                                 child: TextField(
-                                  controller: Number,
+                                  controller: number,
                                   readOnly: true,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
@@ -216,10 +316,10 @@ class _HomecontentState extends State<Homecontent> {
                               IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (Number.text.isNotEmpty) {
-                                      Number.text = Number.text.substring(
+                                    if (number.text.isNotEmpty) {
+                                      number.text = number.text.substring(
                                         0,
-                                        Number.text.length - 1,
+                                        number.text.length - 1,
                                       );
                                     }
                                   });
@@ -257,19 +357,70 @@ class _HomecontentState extends State<Homecontent> {
                           CircleAvatar(
                             backgroundColor: Colors.green,
                             child: IconButton(
-                              icon: const Icon(Icons.call, color: Colors.white),
+                              icon: const Icon(
+                                Icons.call,
+                                color: Colors.white,
+                              ),
                               onPressed: () async {
-                                await Callservice.Connection();
-                                await Callservice.Media(false);
-                                await Callservice.offer();
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        Audio_calling(callType: Call.outgoing),
-                                  ),
+                                if (number.text.length != 10) {
+                                  Navigator.pop(context);
+                                  number.clear();
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text(
+                                          "Check your number",
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        content: Text(
+                                          "Invalid number",
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                  return;
+                                }
+                                final receiverId =
+                                await UserData.Checkuser(number.text);
+                                final enteredNumber = number.text;
+                                String name = enteredNumber;
+                                try {
+                                  final contact = Contacts.firstWhere((data) {
+                                    return data.phones.any((p) {
+                                      return NormalizePhone(p.number) ==
+                                          NormalizePhone(enteredNumber);
+                                    });
+                                  });
+                                  name = contact.displayName ?? enteredNumber;
+                                } catch (e) {}
+
+                                if (receiverId == null) {
+                                  Navigator.pop(context);
+                                  number.clear();
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(
+                                    SnackBar(
+                                      duration: Duration(seconds: 1),
+                                      content: Text(
+                                        "phone number is Not registered",
+                                      ),
+                                    ),
+                                  );
+
+                                  return;
+                                }
+
+
+                                number.clear();
+                                Navigator.pop(context);
+                                await Controller.Startcall(
+                                    reciver_id: receiverId,
+                                    name:name
                                 );
-                               },
+                              },
                             ),
                           ),
                         ],

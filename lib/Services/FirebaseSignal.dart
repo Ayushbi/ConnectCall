@@ -1,100 +1,112 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectcall/Screens/calling/video.dart';
-import 'package:connectcall/Services/CallService.dart';
+import 'package:connectcall/Controller/Call_Controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-class FirebaseSignal {
+class Signaling {
   static final FirebaseFirestore db = FirebaseFirestore.instance;
 
-  static Future<dynamic> signal(String id, RTCSessionDescription offer) async {
-    var call = await db.collection("calls").doc(id);
-    await call.set({
-      "offer": {"type": offer.type, "sdp": offer.sdp},
-      "createdAt": FieldValue.serverTimestamp(),
+  static Future<String> FirestoreDb({
+    required String caller,
+    required String receiver,
+  }) async {
+    final id = db.collection("calls").doc();
+    await id.set({
+      'caller': caller,
+      'receiver': receiver,
+      'callType': 'audio',
+      'status': 'ringing',
+      'createdAt': FieldValue.serverTimestamp(),
+      'startedAt': null,
+      'endedAt': null,
+      'offer': null,
+      'answer': null,
+      'endedBy': null,
+      "rejectedBy": null,
+      'offerReceived': false,
+    });
+    return id.id;
+  }
+
+  Future<void> sendOffer({
+    required String callId,
+    required RTCSessionDescription offer,
+  }) async {
+    await db.collection("calls").doc(callId).update({
+      "offer": {"sdp": offer.sdp, "type": offer.type},
     });
   }
 
-  static Future<dynamic> Get_id() async {
-    var data = db.collection("calls").snapshots();
-    data.listen((item) {
-      for (var data in item.docChanges) {
-        if (data.type == DocumentChangeType.added) {
-          String id = data.doc.id;
-          answer(id);
-        }
-      }
-    });
-  }
-
-  static Future<void> answer(String id) async {
-    var Id = id;
-    var data = await db.collection("calls").doc(Id).get();
-    var offer = data.data()?['offer'];
-    var remoteOffer = RTCSessionDescription(offer['sdp'], offer['type']);
-    var values = await Callservice.answer(remoteOffer);
-    await db.collection("calls").doc(Id).update({
-      "answer": {"type": values.type, "sdp": values.sdp},
-    });
-  }
-
-  // user a
-  static Future<void> getAnswer(String id) async {
-    var data = db.collection("calls").doc(id).snapshots();
-    data.listen((item) {
-      var answer = item.data()?['answer'];
-      if (answer != null) {
-        var remoteOffer = RTCSessionDescription(answer['sdp'], answer['type']);
-        Callservice.getAnswer(remoteOffer);
-      }
-    });
-  }
-
-  static Future<void> candidate(String id, RTCIceCandidate candidate) async {
-    var update = await db
+  Stream<QuerySnapshot<Map<String, dynamic>>> receiveOffer() {
+    final id = FirebaseAuth.instance.currentUser!.uid;
+    return db
         .collection("calls")
-        .doc(id)
-        .collection("candidates")
-        .add({
-          "candidate": {
-            "candidate": candidate.candidate,
-            "sdpMid": candidate.sdpMid,
-            "sdpMLineIndex": candidate.sdpMLineIndex,
-          },
-        });
-  }
-
-  // user 2 (candidate)
-  static Future<void> listen_candidate(String id) async {
-    var candidate = db
-        .collection("calls")
-        .doc(id)
-        .collection("candidates")
+        .where("receiver", isEqualTo: id)
+        .where("status", isEqualTo: "ringing")
         .snapshots();
-    var data = candidate.listen((data) {
-      for (var item in data.docChanges) {
-        if (item.type == DocumentChangeType.added) {
-          var candidate_data = item.doc.data()?['candidate'];
-          var Rtc_candidate = RTCIceCandidate(
-            candidate_data['candidate'],
-            candidate_data['sdpMid'],
-            candidate_data['sdpMLineIndex'],
-          );
-          Callservice.addcandidate(Rtc_candidate);
-        }
-      }
+  }
+
+  Future<void> sendAnswer({
+    required String callId,
+    required RTCSessionDescription answer,
+    required String status
+  }) async {
+    await db.collection("calls").doc(callId).update({
+      "answer": {"sdp": answer.sdp, "type": answer.type},
+      "status":status
     });
   }
 
-  //Get id after accepting call
-  static Future<dynamic> Accept_id() async {
-    String? id;
-    var database = db.collection("calls").snapshots();
-    var snapshot = await database.first;
-    for (var data in snapshot.docChanges) {
-      if (data.type == DocumentChangeType.modified) {
-        id = data.doc.id;
-      }
-    }
-    return id;
+  Stream<DocumentSnapshot<Map<String, dynamic>>> receiveAnswer({
+    required String callId,
+  }) {
+    return db.collection("calls").doc(callId).snapshots();
+  }
+
+  Future<void> SaveCandidates({
+    required String callid,
+    required RTCIceCandidate candidates,
+    required String CollectionName,
+  }) async {
+    await db.collection("calls").doc(callid).collection(CollectionName).add({
+      "candidate": candidates.candidate,
+      "sdpMid": candidates.sdpMid,
+      "sdpMLineIndex": candidates.sdpMLineIndex,
+    });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> RecieveCandidates({
+    required String callid,
+    required String CollectionName,
+  }) {
+    return db
+        .collection("calls")
+        .doc(callid)
+        .collection(CollectionName)
+        .snapshots();
+  }
+
+  Future<void> Callstatus({required String status, required String id,   String? endedBy, String? rejectedBy}) async {
+    await FirebaseFirestore.instance.collection("calls").doc(id).update({
+      'status': status,
+      'endedAt': FieldValue.serverTimestamp(),
+      if (endedBy != null) 'endedBy': endedBy,
+      if (rejectedBy != null) 'rejectedBy': rejectedBy,
+
+    });
+  }
+
+  Future<void> CallStarted({required String id}) async {
+    await FirebaseFirestore.instance.collection("calls").doc(id).update({
+      "status": "accepted",
+      "startedAt": FieldValue.serverTimestamp(),
+    });
+  }
+
+
+  static Stream ListenForCallEnd({required String callId}) {
+    return db.collection('calls').doc(callId).snapshots();
   }
 }

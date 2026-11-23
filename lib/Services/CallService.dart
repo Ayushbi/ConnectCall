@@ -1,82 +1,87 @@
-import 'package:connectcall/Screens/calling/video.dart';
+import 'package:connectcall/Screens/Riverpod/call_provider.dart';
+import 'package:connectcall/Screens/calling/audio.dart';
 import 'package:connectcall/Services/FirebaseSignal.dart';
+import 'package:connectcall/main.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class Callservice {
-  //connection
+  static MediaStream? audio;
   static RTCPeerConnection? connection;
-  static String? call_id;
 
-  static Future<void> Connection([String? id]) async {
-    Callservice.call_id =
-        id ?? FirebaseSignal.db.collection("calls").doc().id;
-    connection = await createPeerConnection({});
-    connection!.onIceCandidate = (call) async {
-      await FirebaseSignal.candidate(call_id!, call);
-      print("ICE Candidate: $call");
-    };
-    FirebaseSignal.listen_candidate(call_id!);
-  }
-
-  //media access
-  static MediaStream? media;
-
-  static Future<void> Media(bool type) async {
-    media = await navigator.mediaDevices.getUserMedia({
+  static Future<MediaStream> MediaPermission() async {
+    audio = await navigator.mediaDevices.getUserMedia({
       'audio': true,
-      'video': type,
+      'video': false,
     });
-    for (var track in media!.getTracks()) {
-      await connection!.addTrack(track, media!);
-    }
+    return audio!;
   }
 
-  static Future<void> RemoteMedia(
-   type, Function(MediaStream) media,
-  ) async {
-    connection!.onTrack = (event) {
-      if (event.track.kind == type) {
-        if (event.streams.isNotEmpty) {
-        media(event.streams[0]);
-        }
-      }
-      if (event.track.kind == type) {
-        if (event.streams.isNotEmpty) {
-         
-          media(event.streams[0]);
+  static Future<void> CreateConnection({
+    required String callid,
+    required bool isCaller,
+  }) async {
+    connection = await createPeerConnection({
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:global.stun.twilio.com:3478'},
+        {'urls': 'stun:stun.cloudflare.com:3478'},
+      ],
+    });
+    connection!.onIceCandidate = (candidates) async {
+      await Signaling().SaveCandidates(
+        callid: callid,
+        candidates: candidates,
+        CollectionName: isCaller ? "callerCandidates" : "receiverCandidates",
+      );
+    };
+    connection!.onIceConnectionState = (state) async{
+      print("ICE CONNECTION STATE: $state");
+      switch (state) {
+        case RTCIceConnectionState.RTCIceConnectionStateConnected:
+          container.read(isconnected.notifier).state = true;
+          if (isCaller) {
+            await Signaling().CallStarted(id: callid);
+          }
+          break;
 
-        }
+        case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+          container.read(isconnected.notifier).state = false;
+          break;
+
+        case RTCIceConnectionState.RTCIceConnectionStateFailed:
+        case RTCIceConnectionState.RTCIceConnectionStateClosed:
+          container.read(isconnected.notifier).state = false;
+          break;
+
+        default:
+          break;
       }
     };
   }
 
-  //offer and answer
-  static Future<void> offer() async {
-    var data = await connection!.createOffer();
-    await connection!.setLocalDescription(data);
-    var id = Callservice.call_id;
-    await FirebaseSignal.signal(id!, data);
+  static Future<void> AudioTrack() async {
+    await connection!.addTrack(audio!.getAudioTracks().first, audio!);
   }
 
-//reciver
-  static Future<RTCSessionDescription> answer(
-    RTCSessionDescription data,
-  ) async {
-    await connection!.setRemoteDescription(data);
-    var answer = await connection!.createAnswer();
-    await connection!.setLocalDescription(answer);
+  static void Mute(bool mute) {
+    audio!.getAudioTracks().first.enabled = !mute;
+  }
+
+  static Future<void> Speaker(bool speaker) async {
+    await Helper.setSpeakerphoneOn(speaker);
+  }
+
+  static Future<RTCSessionDescription> CreateOffer() async {
+    RTCSessionDescription offer = await connection!.createOffer();
+    await connection!.setLocalDescription(offer);
+    return offer;
+  }
+
+  static Future<RTCSessionDescription> CreateAnswer() async {
+    final answer = await connection!.createAnswer();
+
     return answer;
-  }
-
-  // caller receives answer from receiver
-  static Future<void> getAnswer(RTCSessionDescription data) async {
-    await connection!.setRemoteDescription(data);
-  }
-
-  // User B: Add the received ICE candidate to the local WebRTC connection
-  static Future<void> addcandidate(RTCIceCandidate cand) async {
-    await connection!.addCandidate(cand);
   }
 }

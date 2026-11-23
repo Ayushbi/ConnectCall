@@ -12,13 +12,17 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
+    beforeEvaluate {
+        if (name == "audioplayers_android") {
+            plugins.apply("org.jetbrains.kotlin.android")
+        }
+    }
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 subprojects {
     project.evaluationDependsOn(":app")
 }
-
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

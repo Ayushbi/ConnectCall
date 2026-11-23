@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:connectcall/Screens/Home/Homcontent.dart';
+
 import 'package:connectcall/Screens/Home/Home_Screen.dart';
 
 import 'package:connectcall/Screens/auth/Registration.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -20,13 +21,14 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-
-    timer = Timer((Duration(seconds: 3)), () async {
+    timer = Timer(const Duration(seconds: 3), () async {
       if (!mounted) return;
 
-      final userid = await SharedPreferences.getInstance();
-      final id = userid.getString("id");
-      if (id != null) {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (!mounted) return;
+
+      if (user != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -48,13 +50,14 @@ class _SplashState extends State<Splash> {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(height: 130, child: Image.asset("assets/calling.png")),
-
+            Container(height: 150, child: Image.asset("assets/calling.png")),
+            SizedBox(height: height * 0.04),
             CircularProgressIndicator(),
           ],
         ),
